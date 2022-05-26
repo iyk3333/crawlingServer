@@ -4,7 +4,11 @@ import requests
 
 '''
     참고 코드: https://wooiljeong.github.io/python/kakao_local_api/
+    사용 api: http://developer.kakao.com
+    
+    kakao에서 제공하는 api를 사용하여 역을 입력시 역 주변 1.1km 반경의 음식점을 리스트로 리턴
 '''
+
 
 class KakaoLocalAPI:
     """
@@ -36,32 +40,14 @@ class KakaoLocalAPI:
         self.URL_06 = "https://dapi.kakao.com/v2/local/search/category.json"
 
 
-    def search_address(self, query, analyze_type=None, page=None, size=None):
-        """
-        01 주소 검색
-        """
-        params = {"query": f"{query}"}
-
-        if analyze_type != None:
-            params["analyze_type"] = f"{analyze_type}"
-
-        if page != None:
-            params['page'] = f"{page}"
-
-        if size != None:
-            params['size'] = f"{size}"
-
-        res = requests.get(self.URL_01, headers=self.headers, params=params)
-        document = json.loads(res.text)
-
-        return document
 
     def search_keyword(self, query, category_group_code=None, x=None, y=None, radius=None, rect=None, page=None,
-                       size=None, sort=None):
+                       size=None, sort=None) -> set:
         """
         05 키워드 검색
         """
         params = {"query": f"{query}"}
+
 
         if category_group_code != None:
             params['category_group_code'] = f"{category_group_code}"
@@ -85,12 +71,33 @@ class KakaoLocalAPI:
 
         return document
 
+    def getPlaceList(self, query):
+        # 중심이 되는 위도, 경도 좌표 가져오기, 중심 좌표에서 1km씩 빼기
+        station = api.search_keyword(query=query)
+        sx = float(station['documents'][0]['x']) - 0.01
+        sy = float(station['documents'][0]['y']) - 0.01
+
+        placeList = set()
+
+        # 중심을 기준으로 1.1km까지 음식점 리스트 찾기, 우측과 아래로 탐색
+        for i in range(0, 11):
+            for j in range(0, 11):
+                nx = sx + 0.001*i
+                ny = sy + 0.001*j
+                result = self.search_keyword(query=query+"음식점", x=str(nx), y=str(ny), radius=120)
+
+                for k in result['documents']:
+                    placeList.add((k['place_name'], k['road_address_name']))
+
+        placeList = list(placeList)
+
+        return placeList
+
 
 if __name__ == '__main__':
+
     api = KakaoLocalAPI("a0180dc6fa40d65f96e9a986b26f46c8")
+    place = api.getPlaceList("목동역")
 
-    result = api.search_keyword(query="목동역 음식점", page=10)
-    result2 = api.search_address(query="목동역 음식점", page=10)
+    print(place[0])
 
-    for i in result['documents']:
-        print(i['place_name'], " ", i['address_name'])
