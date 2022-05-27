@@ -1,4 +1,6 @@
 import json
+import traceback
+
 import requests
 
 
@@ -22,7 +24,7 @@ class KakaoLocalAPI:
 
         # REST API 키 설정
         self.rest_api_key = rest_api_key
-        self.headers = {"Authorization": "KakaoAK {}".format(rest_api_key)}
+        self.headers = {"Authorization": "KakaoAK {key}".format(key=rest_api_key)}
 
         # 서비스 별 URL 설정
 
@@ -73,31 +75,33 @@ class KakaoLocalAPI:
 
     def getPlaceList(self, query):
         # 중심이 되는 위도, 경도 좌표 가져오기, 중심 좌표에서 1km씩 빼기
-        station = api.search_keyword(query=query)
+        station = self.search_keyword(query=query)
         sx = float(station['documents'][0]['x']) - 0.01
         sy = float(station['documents'][0]['y']) - 0.01
+
 
         placeList = set()
 
         # 중심을 기준으로 1.1km까지 음식점 리스트 찾기, 우측과 아래로 탐색
-        for i in range(0, 11):
-            for j in range(0, 11):
+        for i in range(0, 22):
+            for j in range(0, 22):
                 nx = sx + 0.001*i
                 ny = sy + 0.001*j
                 result = self.search_keyword(query=query+"음식점", x=str(nx), y=str(ny), radius=120)
 
                 for k in result['documents']:
                     placeList.add((k['place_name'], k['road_address_name']))
+                print(query,"--------->", len(placeList))
 
         placeList = list(placeList)
 
         return placeList
 
 
-if __name__ == '__main__':
-
-    api = KakaoLocalAPI("a0180dc6fa40d65f96e9a986b26f46c8")
-    place = api.getPlaceList("목동역")
-
-    print(place[0])
+# if __name__ == '__main__':
+#
+#     api = KakaoLocalAPI("a0180dc6fa40d65f96e9a986b26f46c8")
+#     place = api.getPlaceList("목동역")
+#
+#     print(place[0])
 
