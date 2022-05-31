@@ -83,8 +83,8 @@ class KakaoLocalAPI:
         placeList = set()
 
         # 중심을 기준으로 1.1km까지 음식점 리스트 찾기, 우측과 아래로 탐색
-        for i in range(0, 22):
-            for j in range(0, 22):
+        for i in range(0, 11):
+            for j in range(0, 11):
                 nx = sx + 0.001*i
                 ny = sy + 0.001*j
                 result = self.search_keyword(query=query+"음식점", x=str(nx), y=str(ny), radius=120)
