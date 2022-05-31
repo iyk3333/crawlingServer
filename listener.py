@@ -25,6 +25,29 @@ placeInfo = db['placeInfo']
 lock = threading.Lock()
 
 
+def findPlaceList(placeList):
+    print(len(placeList))
+    results = []
+    for i in placeList:
+        result = placeInfo.count_documents({'placeName': i[0], 'placeAddress': i[1]})
+
+        if result == 0:
+            results.append({'placeName': i[0], 'placeAddress': i[1]})
+    print(len(results))
+    # stationInfo.insert_many(results)
+
+    return results
+
+
+def getPlace(placeList):
+    result = []
+    util = Util(hosts, indexLogPath, errorLogPath, webdriverPath)
+    for place in placeList:
+        result.append(util.getPlaceInfoDetails(geoLocal, place['placeName']+place['placeAddress']))
+    return result
+
+
+
 class Server(Thread):
     def __init__(self):
         super().__init__()
@@ -68,24 +91,4 @@ class Listener(Thread):
             # lock.release()
 
 
-def findPlaceList(placeList):
-    print(len(placeList))
-    results = []
-    for i in placeList:
-        result = placeInfo.count_documents({'placeName': i[0], 'placeAddress': i[1]})
-
-        if result == 0:
-            results.append({'placeName': i[0], 'placeAddress': i[1]})
-    print(len(results))
-    # stationInfo.insert_many(results)
-
-    return results
-
-
-def getPlace(placeList):
-    result = []
-    util = Util(hosts, indexLogPath, errorLogPath, webdriverPath)
-    for place in placeList:
-        result.append(util.getPlaceInfoDetails(geoLocal, place['placeName']+place['placeAddress']))
-    return result
 
