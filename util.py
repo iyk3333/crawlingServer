@@ -31,9 +31,6 @@ class Util:
         service = Service(driver_path)
         option = webdriver.ChromeOptions()
         option.add_experimental_option("excludeSwitches", ["enable-logging"])
-        # option.add_argument('--no-sandbox')
-        # option.add_argument('--headless')
-        # option.add_argument('--disable-dev-shm-usage')
         option.add_argument(
             'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
             'Chrome/101.0.4951.41 Safari/537.36')

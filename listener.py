@@ -1,94 +1,91 @@
 import socket
-import threading
 from threading import Thread
 from getPlaceListKakao import *
 from util import *
 from pymongo import MongoClient
 
 
-# playList API
-api = KakaoLocalAPI("a0180dc6fa40d65f96e9a986b26f46c8")
+def findPlaceList(nameList, addressList, placeList, placeInfo):
+    placeInfo = list(placeInfo)
 
-# crawling
-hosts = 'http://127.0.0.1:8000'
-indexLogPath = 'C:\\Users\\catty\\PycharmProjects\\crawlingServer\\log\\SavedIndex2.log'
-errorLogPath = 'C:\\Users\\catty\\PycharmProjects\\crawlingServer\\log\\Noplace2.log'
-webdriverPath = 'C:\\Users\\catty\\PycharmProjects\\luckyseven\\crawler\\chromedriver_win32\\chromedriver.exe'
-geoLocal = Nominatim(user_agent='South Korea')
-
-# MongoDB
-client = MongoClient('127.0.0.1', 27017)
-db = client['test1']
-placeInfo = db['placeInfo']
-
-# thread lock
-lock = threading.Lock()
+    placeInfo.aggregate([
+        {'$project': {'index': {'$concat': ["$placeName", "$placeAddress"]}}},
+        {'$merge': 'placeInfo'}
+    ])
+    result = placeInfo.find({'index': {'$in': placeList}})
 
 
-def findPlaceList(placeList):
-    print(len(placeList))
-    results = []
-    for i in placeList:
-        result = placeInfo.count_documents({'placeName': i[0], 'placeAddress': i[1]})
+    alreadyList = list()
+    for i in result:
+        print(i)
+        alreadyList.append((i['placeName'], i['placeAddress']))
 
-        if result == 0:
-            results.append({'placeName': i[0], 'placeAddress': i[1]})
-    print(len(results))
-    # stationInfo.insert_many(results)
+    results = set(placeList) - set(alreadyList)
+    # print(len(results))
 
-    return results
+    return list(results)
 
 
-def getPlace(placeList):
+def getPlace(placeList, crawlHost, indexLogPath, errorLogPath, webdriverPath, geoLocal):
     result = []
-    util = Util(hosts, indexLogPath, errorLogPath, webdriverPath)
+    util = Util(crawlHost, indexLogPath, errorLogPath, webdriverPath)
     for place in placeList:
-        result.append(util.getPlaceInfoDetails(geoLocal, place['placeName']+place['placeAddress']))
-    return result
-
+        util.getPlaceInfoDetails(geoLocal, place[0]+place[1])
 
 
 class Server(Thread):
-    def __init__(self):
+    def __init__(self,crawlHost, socketHost, socketPort, mongoHost, mongoPort, kakaoapi, indexLogPath, errorLogPath, webdriverPath, dbName, user_agent):
         super().__init__()
         self.clients = []
-        self.host = '127.0.0.1'
-        self.port = 10227
+        self.crawlHost = crawlHost
+        self.host = socketHost
+        self.port = socketPort
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.bind((self.host, self.port))
         self.sock.listen()
+        self.mongoHost = mongoHost
+        self.mongoPort = mongoPort
+        self.kakaoapi = kakaoapi
+        self.indexLogPath = indexLogPath
+        self.errorLogPath = errorLogPath
+        self.webdriverPath = webdriverPath
+        self.dbName = dbName
+        self.user_agent = user_agent
 
     def handleConnection(self, client):
-        c = Listener(client)
+        c = Listener(client, self.kakaoapi, self.mongoHost, self.mongoPort, self.dbName, self.crawlHost, self.user_agent, self.indexLogPath, self.errorLogPath, self.webdriverPath)
+        c.start()
         self.clients.append(c)
 
     def run(self):
         while True:
             client_socket, addr = self.sock.accept()
             self.handleConnection(client_socket)
-            if len(self.clients) != 0:
-                lock.acquire()
-                self.clients[0].start()
-                lock.release()
+
 
 
 
 class Listener(Thread):
-    def __init__(self, sock):
+    def __init__(self, sock, kakaoapi, host, port, dbName, crawlHost, user_agent, indexLogPath, errorLogPath, webdriverPath):
         super().__init__()
         self.sock = sock
+        self.api = KakaoLocalAPI(kakaoapi)
+        self.client = MongoClient(host, port)
+        self.db = self.client[dbName]
+        self.placeInfo = self.db['placeInfo']
+        self.crawlHost = crawlHost
+        self.geoLocal = Nominatim(user_agent=user_agent)
+        self.indexLogPath = indexLogPath
+        self.errorLogPath = errorLogPath
+        self.webdriverPath = webdriverPath
+
 
     def run(self):
         while True:
-            # lock.acquire()
             query = self.sock.recv(128).decode('utf-8')
-            print("OK")
-            placeList = api.getPlaceList(query)
-            placeList = findPlaceList(placeList)
+            nameList, addressList, placeList = self.api.getPlaceList(query)
+            placeList = findPlaceList(nameList, addressList, placeList, self.placeInfo)
             if len(placeList) != 0:
-                result = getPlace(placeList)
-                print(result)
-            # lock.release()
-
+                getPlace(placeList, self.crawlHost, self.indexLogPath, self.errorLogPath, self.webdriverPath, self.geoLocal)
 
 

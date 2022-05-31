@@ -1,3 +1,4 @@
+import pymongo
 from fastapi import FastAPI
 from pymongo import MongoClient
 from pymongo import errors
@@ -7,13 +8,13 @@ import socket
 from util import *
 
 
+
 # DB 만들기, index 생성(장소 이름, 장소 주소)
 client = MongoClient('127.0.0.1', 27017)
 db = client['test1']
 placeInfo = db['placeInfo']
 reviewInfo = db['reviewInfo']
 userInfo = db['userInfo']
-# stationInfo.create_index([('placeName', pymongo.ASCENDING), ('placeAddress', pymongo.ASCENDING)], unique=True)
 # placeInfo.create_index([('placeName', pymongo.ASCENDING), ('placeAddress', pymongo.ASCENDING)], unique=True)
 # reviewInfo.create_index([('placeName', pymongo.ASCENDING), ('placeAddress', pymongo.ASCENDING), ('userHash', pymongo.ASCENDING), ('reviewInfoVisitCount', pymongo.ASCENDING)], unique=True)
 # userInfo.create_index('userHash', unique=True)
@@ -22,7 +23,8 @@ userInfo = db['userInfo']
 app = FastAPI()
 
 HOST = '127.0.0.1'
-PORT = 10227
+PORT = 10229
+
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((HOST, PORT))
@@ -48,6 +50,7 @@ async def receivePlaceInfo(data: schema.PlaceInfoModel):
     except Exception as placeError:
         print(traceback.format_exc())
         pass
+
 
 
 @app.post('/ReviewInfoModel')

@@ -9,12 +9,12 @@ class Payload:
         }
 
 
-
 if __name__ == '__main__':
     data = Payload().stationInfo
     data['station'] = "사당역"
 
     try:
+        # fastapi server url
         url = 'http://127.0.0.1:8000/stationInfoModel'
         result = requests.post(url=url, json=data)
 

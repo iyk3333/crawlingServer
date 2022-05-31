@@ -27,26 +27,14 @@ class KakaoLocalAPI:
         self.headers = {"Authorization": "KakaoAK {key}".format(key=rest_api_key)}
 
         # 서비스 별 URL 설정
-
-        # 01 주소 검색
-        self.URL_01 = "https://dapi.kakao.com/v2/local/search/address.json"
-        # 02 좌표-행정구역정보 변환
-        self.URL_02 = "https://dapi.kakao.com/v2/local/geo/coord2regioncode.json"
-        # 03 좌표-주소 변환
-        self.URL_03 = "https://dapi.kakao.com/v2/local/geo/coord2address.json"
-        # 04 좌표계 변환
-        self.URL_04 = "https://dapi.kakao.com/v2/local/geo/transcoord.json"
-        # 05 키워드 검색
-        self.URL_05 = "https://dapi.kakao.com/v2/local/search/keyword.json"
-        # 06 카테고리 검색
-        self.URL_06 = "https://dapi.kakao.com/v2/local/search/category.json"
+        self.URL = "https://dapi.kakao.com/v2/local/search/keyword.json"
 
 
 
     def search_keyword(self, query, category_group_code=None, x=None, y=None, radius=None, rect=None, page=None,
                        size=None, sort=None) -> set:
         """
-        05 키워드 검색
+        키워드 검색
         """
         params = {"query": f"{query}"}
 
@@ -68,7 +56,7 @@ class KakaoLocalAPI:
         if sort != None:
             params['sort'] = f"{sort}"
 
-        res = requests.get(self.URL_05, headers=self.headers, params=params)
+        res = requests.get(self.URL, headers=self.headers, params=params)
         document = json.loads(res.text)
 
         return document
@@ -80,6 +68,8 @@ class KakaoLocalAPI:
         sy = float(station['documents'][0]['y']) - 0.01
 
 
+        nameList = set()
+        addressList = set()
         placeList = set()
 
         # 중심을 기준으로 1.1km까지 음식점 리스트 찾기, 우측과 아래로 탐색
@@ -90,18 +80,14 @@ class KakaoLocalAPI:
                 result = self.search_keyword(query=query+"음식점", x=str(nx), y=str(ny), radius=120)
 
                 for k in result['documents']:
-                    placeList.add((k['place_name'], k['road_address_name']))
-                print(query,"--------->", len(placeList))
+                    nameList.add(k['place_name'])
+                    addressList.add(k['road_address_name'])
+                    placeList.add(k['place_name']+k['road_address_name'])
+                print(query,"--------->", len(nameList))
 
+        nameList = list(nameList)
+        addressList = list(addressList)
         placeList = list(placeList)
 
-        return placeList
-
-
-# if __name__ == '__main__':
-#
-#     api = KakaoLocalAPI("a0180dc6fa40d65f96e9a986b26f46c8")
-#     place = api.getPlaceList("목동역")
-#
-#     print(place[0])
+        return nameList, addressList, placeList
 

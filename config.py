@@ -8,7 +8,6 @@ class Subway:
 
 class URL:
     baseURL = 'https://map.naver.com/v5/search/{placeName}/place'
-    # baseURL  = 'https://naver.com'
     # kakao
     basePath = 'https://map.kakao.com/'
 
